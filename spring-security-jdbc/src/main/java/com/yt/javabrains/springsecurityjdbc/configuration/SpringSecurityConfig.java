@@ -69,9 +69,11 @@ public class SpringSecurityConfig {
         httpSecurity.authorizeHttpRequests()
                 .requestMatchers(new AntPathRequestMatcher("/admin")).hasRole("ADMIN")
                 .requestMatchers(new AntPathRequestMatcher("/user")).hasAnyRole("USER","ADMIN")
-                .requestMatchers(new AntPathRequestMatcher("/")).permitAll();
-//                .requestMatchers(new AntPathRequestMatcher("/h2-console")).permitAll();
+                .requestMatchers(new AntPathRequestMatcher("/")).permitAll()
+                .requestMatchers(new AntPathRequestMatcher("/h2-console/**")).permitAll();
 
+        httpSecurity.csrf(csrf -> csrf.ignoringRequestMatchers(new AntPathRequestMatcher("/h2-console/**")));
+        httpSecurity.headers(headers -> headers.frameOptions(frameOptionsConfig -> frameOptionsConfig.sameOrigin()));
         httpSecurity.formLogin(Customizer.withDefaults());
 
         return httpSecurity.build();
