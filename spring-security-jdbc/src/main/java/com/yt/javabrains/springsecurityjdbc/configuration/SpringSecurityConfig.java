@@ -7,10 +7,12 @@ import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.jdbc.JdbcDaoImpl;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.NoOpPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.security.provisioning.UserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
@@ -35,9 +37,9 @@ public class SpringSecurityConfig {
     @Bean
     public UserDetailsManager jdbcUserDetailsManager(DataSource dataSource){
         JdbcUserDetailsManager userDetailsManager = new JdbcUserDetailsManager(dataSource);
-        userDetailsManager.setUsersByUsernameQuery("SELECT username,password,enabled FROM users where username=user");
-        userDetailsManager.setAuthoritiesByUsernameQuery("SELECT username,authority FROM authorities where username=user");
-        return userDetailsManager;
+        /*userDetailsManager.setUsersByUsernameQuery("SELECT username,password,enabled FROM users where username=?");
+        userDetailsManager.setAuthoritiesByUsernameQuery("SELECT username,authority FROM authorities where username=?");
+        */return userDetailsManager;
 
     }
 
@@ -53,21 +55,25 @@ public class SpringSecurityConfig {
     }
 
     @Bean
-    public static BCryptPasswordEncoder passwordEncoder(){
-        return new BCryptPasswordEncoder();
+    public static PasswordEncoder passwordEncoder(){
+        return NoOpPasswordEncoder.getInstance();
     }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
 
-        httpSecurity.authorizeHttpRequests()
+        httpSecurity.authorizeHttpRequests(auth -> { auth
+
+
                 .requestMatchers(new AntPathRequestMatcher("/admin")).hasRole("ADMIN")
                 .requestMatchers(new AntPathRequestMatcher("/user")).hasAnyRole("USER","ADMIN")
                 .requestMatchers(new AntPathRequestMatcher("/")).permitAll()
 
                 .requestMatchers(new AntPathRequestMatcher("/h2-console/**")).permitAll();
+        });
 
-        httpSecurity.csrf().ignoringRequestMatchers(new AntPathRequestMatcher("/h2-console/**"));
+        httpSecurity.csrf(csrf -> csrf.ignoringRequestMatchers(new AntPathRequestMatcher("/h2-console/**")));
+        httpSecurity.headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin));
         httpSecurity.formLogin(Customizer.withDefaults());
 
         return httpSecurity.build();
